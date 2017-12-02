@@ -1,0 +1,39 @@
+{
+  "forge_marker": 1,
+  "defaults": {
+    "model": "builtin/generated",
+    "textures": {
+      "layer0": "whoosh:items/staff/staff_0"
+    },
+    "transform": "forge:default-item"
+  },
+  "variants": {
+    "type": {
+      "standard0": {
+        "textures": {
+          "layer0": "whoosh:items/transporter_0"
+        }
+      },
+      "standard1": {
+        "textures": {
+          "layer0": "whoosh:items/transporter_1"
+        }
+      },
+      "standard2": {
+        "textures": {
+          "layer0": "whoosh:items/transporter_2"
+        }
+      },
+      "standard3": {
+        "textures": {
+          "layer0": "whoosh:items/transporter_3"
+        }
+      },
+      "standard4": {
+        "textures": {
+          "layer0": "whoosh:items/transporter_4"
+        }
+      }
+    }
+  }
+}
