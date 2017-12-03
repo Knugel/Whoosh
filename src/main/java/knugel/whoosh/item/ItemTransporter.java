@@ -13,9 +13,14 @@ import cofh.core.util.RegistrySocial;
 import cofh.core.util.core.IInitializer;
 import cofh.core.util.helpers.*;
 import cofh.redstoneflux.api.IEnergyContainerItem;
+import cofh.thermalfoundation.init.TFFluids;
 import com.mojang.authlib.GameProfile;
 import gnu.trove.map.hash.TIntObjectHashMap;
 import knugel.whoosh.Whoosh;
+import knugel.whoosh.gui.GuiHandler;
+import knugel.whoosh.util.FluidItemWrapper;
+import knugel.whoosh.util.IFluidItem;
+import knugel.whoosh.util.TeleportPosition;
 import knugel.whoosh.util.TeleportUtil;
 import net.minecraft.client.util.ITooltipFlag;
 import net.minecraft.creativetab.CreativeTabs;
@@ -23,18 +28,26 @@ import net.minecraft.enchantment.Enchantment;
 import net.minecraft.enchantment.EnchantmentHelper;
 import net.minecraft.entity.player.EntityPlayer;
 import net.minecraft.init.SoundEvents;
+import net.minecraft.inventory.ItemStackHelper;
 import net.minecraft.item.EnumRarity;
 import net.minecraft.item.ItemStack;
 import net.minecraft.nbt.NBTTagCompound;
+import net.minecraft.nbt.NBTTagList;
 import net.minecraft.util.*;
+import net.minecraft.util.math.BlockPos;
 import net.minecraft.util.text.TextComponentTranslation;
 import net.minecraft.world.World;
+import net.minecraftforge.common.capabilities.ICapabilityProvider;
+import net.minecraftforge.common.util.Constants;
+import net.minecraftforge.fluids.Fluid;
+import net.minecraftforge.fluids.FluidStack;
 
 import javax.annotation.Nullable;
+import java.util.ArrayList;
 import java.util.List;
 import java.util.UUID;
 
-public class ItemTransporter extends ItemMulti implements IInitializer, IMultiModeItem, IEnergyContainerItem, IEnchantableItem, INBTCopyIngredient {
+public class ItemTransporter extends ItemMulti implements IInitializer, IMultiModeItem, IEnergyContainerItem, IFluidItem, IEnchantableItem, INBTCopyIngredient {
 
     public ItemTransporter() {
 
@@ -79,10 +92,25 @@ public class ItemTransporter extends ItemMulti implements IInitializer, IMultiMo
         tooltip.add(StringHelper.getInfoText("info.whoosh.transporter.a." + getMode(stack)));
         tooltip.add(StringHelper.localizeFormat("info.whoosh.transporter.b.0", StringHelper.getKeyName(KeyBindingItemMultiMode.INSTANCE.getKey())));
 
+        if (!typeMap.get(ItemHelper.getItemDamage(stack)).dimension) {
+            tooltip.add(StringHelper.localizeFormat("info.whoosh.transporter.c.0"));
+        }
+
+        if(getSelected(stack) != -1) {
+            TeleportPosition pos = getPositions(stack).get(getSelected(stack));
+            tooltip.add(StringHelper.localizeFormat("info.whoosh.transporter.c.1", pos.name));
+        }
+
         if (ItemHelper.getItemDamage(stack) == CREATIVE) {
             tooltip.add(StringHelper.localize("info.cofh.charge") + ": 1.21G RF");
         } else {
             tooltip.add(StringHelper.localize("info.cofh.charge") + ": " + StringHelper.getScaledNumber(getEnergyStored(stack)) + " / " + StringHelper.getScaledNumber(getMaxEnergyStored(stack)) + " RF");
+        }
+
+        if (ItemHelper.getItemDamage(stack) == CREATIVE) {
+            tooltip.add(StringHelper.localize("info.cofh.infiniteSource"));
+        } else {
+            tooltip.add(StringHelper.localize("info.cofh.level") + ": 0 / " + StringHelper.formatNumber(getTankCapacity(stack)) + " mB");
         }
     }
 
@@ -93,9 +121,11 @@ public class ItemTransporter extends ItemMulti implements IInitializer, IMultiMo
             for (int metadata : itemList) {
                 if (metadata != CREATIVE) {
                     items.add(EnergyHelper.setDefaultEnergyTag(new ItemStack(this, 1, metadata), 0));
-                    items.add(EnergyHelper.setDefaultEnergyTag(new ItemStack(this, 1, metadata), getBaseCapacity(metadata)));
+                    items.add(EnergyHelper.setDefaultEnergyTag(FluidHelper.setDefaultFluidTag(new ItemStack(this, 1, metadata),
+                                    new FluidStack(TFFluids.fluidEnder, getTankBaseCapacity(metadata))), getBaseCapacity(metadata)));
                 } else {
-                    items.add(EnergyHelper.setDefaultEnergyTag(new ItemStack(this, 1, metadata), getBaseCapacity(metadata)));
+                    items.add(EnergyHelper.setDefaultEnergyTag(FluidHelper.setDefaultFluidTag(new ItemStack(this, 1, metadata),
+                                    new FluidStack(TFFluids.fluidEnder, getTankBaseCapacity(metadata))), getBaseCapacity(metadata)));
                 }
             }
         }
@@ -166,7 +196,44 @@ public class ItemTransporter extends ItemMulti implements IInitializer, IMultiMo
                 return new ActionResult<>(EnumActionResult.SUCCESS, stack);
             }
             if (canPlayerAccess(stack, player)) {
+                if(getMode(stack) == 1) {
+                    if(player.isSneaking()) {
 
+                        int index = getSelected(stack);
+                        if(index != -1) {
+                            TeleportPosition target = getPositions(stack).get(index);
+                            int rfCost = TeleportUtil.getRFCost(world, new BlockPos(player.posX, player.posY, player.posZ), target);
+                            int fluidCost = TeleportUtil.getFluidCost(world, new BlockPos(player.posX, player.posY, player.posZ), target);
+                            TypeEntry type = typeMap.get(ItemHelper.getItemDamage(stack));
+
+                            if(target.dimension != world.provider.getDimension() && !type.dimension) {
+                                ChatHelper.sendIndexedChatMessageToPlayer(player, new TextComponentTranslation("chat.transporter.dimension.warning"));
+                                return new ActionResult<>(EnumActionResult.FAIL, stack);
+                            }
+
+                            if(rfCost > getEnergyStored(stack)) {
+                                ChatHelper.sendIndexedChatMessageToPlayer(player, new TextComponentTranslation("chat.transporter.rf.warning"));
+                                return new ActionResult<>(EnumActionResult.FAIL, stack);
+                            }
+
+                            if(getFluid(stack) == null || fluidCost > getFluid(stack).amount) {
+                                ChatHelper.sendIndexedChatMessageToPlayer(player, new TextComponentTranslation("chat.transporter.fluid.warning"));
+                                return new ActionResult<>(EnumActionResult.FAIL, stack);
+                            }
+
+                            if(TeleportUtil.performTeleport(world, player, target)) {
+
+                                extractEnergy(stack, rfCost, false);
+                                drain(stack, fluidCost, false);
+                            }
+
+                        }
+
+                    }
+                    else {
+                        player.openGui(Whoosh.instance, GuiHandler.TRANSPORTER_ID, world, 0, 0, 0);
+                    }
+                }
             } else if (SecurityHelper.isSecure(stack)) {
                 ChatHelper.sendIndexedChatMessageToPlayer(player, new TextComponentTranslation("chat.cofh.secure.warning", SecurityHelper.getOwnerName(stack)));
                 return new ActionResult<>(EnumActionResult.FAIL, stack);
@@ -193,6 +260,212 @@ public class ItemTransporter extends ItemMulti implements IInitializer, IMultiMo
         }
         UUID otherID = SecurityHelper.getID(player);
         return ownerID.equals(otherID) || access.isFriendsOnly() && RegistrySocial.playerHasAccess(name, profile);
+    }
+
+    private static void createDefaultTag(ItemStack stack) {
+
+        if(!stack.hasTagCompound())
+            stack.setTagCompound(new NBTTagCompound());
+
+        NBTTagCompound tag = stack.getTagCompound();
+        if(!tag.hasKey("Positions")) {
+            NBTTagList list = new NBTTagList();
+            tag.setTag("Positions", list);
+        }
+    }
+
+    public static void appendPoint(ItemStack stack, TeleportPosition pos) {
+
+        createDefaultTag(stack);
+        NBTTagCompound tag = stack.getTagCompound();
+        NBTTagList list = tag.getTagList("Positions", Constants.NBT.TAG_COMPOUND);
+        list.appendTag(pos.serializeNBT());
+    }
+
+    public static boolean removePoint(ItemStack stack, int index) {
+
+        createDefaultTag(stack);
+        NBTTagCompound tag = stack.getTagCompound();
+        NBTTagList list = tag.getTagList("Positions", Constants.NBT.TAG_COMPOUND);
+
+        if(index > list.tagCount() || index < 0)
+            return false;
+
+        list.removeTag(index);
+        return true;
+    }
+
+    public static List<TeleportPosition> getPositions(ItemStack stack) {
+
+        createDefaultTag(stack);
+        List<TeleportPosition> points = new ArrayList<>();
+        NBTTagCompound tag = stack.getTagCompound();
+        NBTTagList list = tag.getTagList("Positions", Constants.NBT.TAG_COMPOUND);
+        for (int i = 0; i < list.tagCount(); i++) {
+            TeleportPosition p = new TeleportPosition();
+            p.deserializeNBT(list.getCompoundTagAt(i));
+            points.add(p);
+        }
+
+        return points;
+    }
+
+    public static int getSelected(ItemStack stack) {
+
+        if(!stack.hasTagCompound())
+            return -1;
+
+        NBTTagCompound tag = stack.getTagCompound();
+        if(!tag.hasKey("Selected"))
+            return -1;
+
+        return tag.getInteger("Selected");
+    }
+
+    public static void setSelected(ItemStack stack, int index) {
+
+        if(!stack.hasTagCompound())
+            return;
+
+        NBTTagCompound tag = stack.getTagCompound();
+        tag.setInteger("Selected", index);
+    }
+
+    /* IFluidContainerItem */
+    @Override
+    public FluidStack drain(ItemStack container, int maxDrain, boolean doDrain) {
+
+        if (container.getTagCompound() == null) {
+            container.setTagCompound(new NBTTagCompound());
+        }
+        if (!container.getTagCompound().hasKey("Fluid") || maxDrain == 0) {
+            return null;
+        }
+        FluidStack stack = FluidStack.loadFluidStackFromNBT(container.getTagCompound().getCompoundTag("Fluid"));
+
+        if (stack == null) {
+            return null;
+        }
+        int drained = Math.min(stack.amount, maxDrain);
+
+        if (doDrain && ItemHelper.getItemDamage(container) != CREATIVE) {
+            if (maxDrain >= stack.amount) {
+                container.getTagCompound().removeTag("Fluid");
+                return stack;
+            }
+            NBTTagCompound fluidTag = container.getTagCompound().getCompoundTag("Fluid");
+            fluidTag.setInteger("Amount", fluidTag.getInteger("Amount") - drained);
+            container.getTagCompound().setTag("Fluid", fluidTag);
+        }
+        stack.amount = drained;
+        return stack;
+    }
+
+    @Override
+    public int fill(ItemStack container, FluidStack resource, boolean doFill) {
+
+        if (container.getTagCompound() == null) {
+            container.setTagCompound(new NBTTagCompound());
+        }
+        if (resource == null) {
+            return 0;
+        }
+        if(resource.getFluid() != TFFluids.fluidEnder) {
+            return 0;
+        }
+
+        int capacity = getTankCapacity(container);
+
+        if (ItemHelper.getItemDamage(container) == CREATIVE) {
+            if (doFill) {
+                NBTTagCompound fluidTag = resource.writeToNBT(new NBTTagCompound());
+                fluidTag.setInteger("Amount", capacity - Fluid.BUCKET_VOLUME);
+                container.getTagCompound().setTag("Fluid", fluidTag);
+            }
+            return resource.amount;
+        }
+        if (!doFill) {
+            if (!container.getTagCompound().hasKey("Fluid")) {
+                return Math.min(capacity, resource.amount);
+            }
+            FluidStack stack = FluidStack.loadFluidStackFromNBT(container.getTagCompound().getCompoundTag("Fluid"));
+
+            if (stack == null) {
+                return Math.min(capacity, resource.amount);
+            }
+            if (!stack.isFluidEqual(resource)) {
+                return 0;
+            }
+            return Math.min(capacity - stack.amount, resource.amount);
+        }
+        if (!container.getTagCompound().hasKey("Fluid")) {
+            NBTTagCompound fluidTag = resource.writeToNBT(new NBTTagCompound());
+
+            if (capacity < resource.amount) {
+                fluidTag.setInteger("Amount", capacity);
+                container.getTagCompound().setTag("Fluid", fluidTag);
+                return capacity;
+            }
+            fluidTag.setInteger("Amount", resource.amount);
+            container.getTagCompound().setTag("Fluid", fluidTag);
+            return resource.amount;
+        }
+        NBTTagCompound fluidTag = container.getTagCompound().getCompoundTag("Fluid");
+        FluidStack stack = FluidStack.loadFluidStackFromNBT(fluidTag);
+
+        if (!stack.isFluidEqual(resource)) {
+            return 0;
+        }
+        int filled = capacity - stack.amount;
+
+        if (resource.amount < filled) {
+            stack.amount += resource.amount;
+            filled = resource.amount;
+        } else {
+            stack.amount = capacity;
+        }
+        container.getTagCompound().setTag("Fluid", stack.writeToNBT(fluidTag));
+        return filled;
+    }
+
+    @Override
+    public FluidStack getFluid(ItemStack container) {
+
+        if (container.getTagCompound() == null) {
+            container.setTagCompound(new NBTTagCompound());
+        }
+        if (!container.getTagCompound().hasKey("Fluid")) {
+            return null;
+        }
+        return FluidStack.loadFluidStackFromNBT(container.getTagCompound().getCompoundTag("Fluid"));
+    }
+
+    @Override
+    public int getTankCapacity(ItemStack stack) {
+
+        if (!typeMap.containsKey(ItemHelper.getItemDamage(stack))) {
+            return 0;
+        }
+        int capacity = typeMap.get(ItemHelper.getItemDamage(stack)).tank;
+        int enchant = EnchantmentHelper.getEnchantmentLevel(CoreEnchantments.holding, stack);
+
+        return capacity + capacity * enchant / 2;
+    }
+
+    public int getTankBaseCapacity(int metadata) {
+
+        if (!typeMap.containsKey(metadata)) {
+            return 0;
+        }
+
+        return typeMap.get(metadata).tank;
+    }
+
+    /* CAPABILITIES */
+    @Override
+    public ICapabilityProvider initCapabilities(ItemStack stack, NBTTagCompound nbt) {
+
+        return new FluidItemWrapper(stack, this);
     }
 
     /* IEnergyContainerItem */
@@ -316,13 +589,13 @@ public class ItemTransporter extends ItemMulti implements IInitializer, IMultiMo
 
         config();
 
-        transporterBasic = addEntryItem(0, "standard0", CAPACITY[0], EnumRarity.COMMON);
-        transporterHardened = addEntryItem(1, "standard1", CAPACITY[1], EnumRarity.COMMON);
-        transporterReinforced = addEntryItem(2, "standard2", CAPACITY[2], EnumRarity.UNCOMMON);
-        transporterSignalum = addEntryItem(3, "standard3", CAPACITY[3], EnumRarity.UNCOMMON);
-        transporterResonant = addEntryItem(4, "standard4", CAPACITY[4], EnumRarity.RARE);
+        transporterBasic = addEntryItem(0, "standard0", CAPACITY[0], TANK[0], DIMENSION[0], EnumRarity.COMMON);
+        transporterHardened = addEntryItem(1, "standard1", CAPACITY[1], TANK[1], DIMENSION[1], EnumRarity.COMMON);
+        transporterReinforced = addEntryItem(2, "standard2", CAPACITY[2], TANK[2], DIMENSION[2], EnumRarity.UNCOMMON);
+        transporterSignalum = addEntryItem(3, "standard3", CAPACITY[3], TANK[3], DIMENSION[3], EnumRarity.UNCOMMON);
+        transporterResonant = addEntryItem(4, "standard4", CAPACITY[4], TANK[4], DIMENSION[4], EnumRarity.RARE);
 
-        transporterCreative = addEntryItem(CREATIVE, "creative", CAPACITY[4], EnumRarity.EPIC, false);
+        transporterCreative = addEntryItem(CREATIVE, "creative", CAPACITY[4], TANK[4], DIMENSION[4], EnumRarity.EPIC, false);
 
         Whoosh.proxy.addIModelRegister(this);
 
@@ -353,38 +626,44 @@ public class ItemTransporter extends ItemMulti implements IInitializer, IMultiMo
 
         public final String name;
         public final int capacity;
+        public final int tank;
+        public final boolean dimension;
         public final boolean enchantable;
 
-        TypeEntry(String name, int capacity, boolean enchantable) {
+        TypeEntry(String name, int capacity, int tank, boolean dimension, boolean enchantable) {
 
             this.name = name;
             this.capacity = capacity;
+            this.dimension = dimension;
             this.enchantable = enchantable;
+            this.tank = tank;
         }
     }
 
-    private void addEntry(int metadata, String name, int capacity, boolean enchantable) {
+    private void addEntry(int metadata, String name, int capacity, int tank, boolean dimension, boolean enchantable) {
 
-        typeMap.put(metadata, new TypeEntry(name, capacity, enchantable));
+        typeMap.put(metadata, new TypeEntry(name, capacity, tank, dimension, enchantable));
     }
 
-    private ItemStack addEntryItem(int metadata, String name, int capacity, EnumRarity rarity) {
+    private ItemStack addEntryItem(int metadata, String name, int capacity, int tank, boolean dimension, EnumRarity rarity) {
 
-        addEntry(metadata, name, capacity, true);
+        addEntry(metadata, name, capacity, tank, dimension, true);
         return addItem(metadata, name, rarity);
     }
 
-    private ItemStack addEntryItem(int metadata, String name, int capacity, EnumRarity rarity, boolean enchantable) {
+    private ItemStack addEntryItem(int metadata, String name, int capacity, int tank, boolean dimension, EnumRarity rarity, boolean enchantable) {
 
-        addEntry(metadata, name, capacity, enchantable);
+        addEntry(metadata, name, capacity, tank, dimension, enchantable);
         return addItem(metadata, name, rarity);
     }
 
     private static TIntObjectHashMap<TypeEntry> typeMap = new TIntObjectHashMap<>();
 
-    public static final int CAPACITY_BASE = 1000000;
+    public static final int CAPACITY_BASE = 50000;
     public static final int CREATIVE = 32000;
     public static final int[] CAPACITY = { 1, 4, 9, 16, 25 };
+    public static final int[] TANK = { 500, 2000, 5000, 8000, 13000 };
+    public static final boolean[] DIMENSION = { false, false, true, true, true };
 
     /* REFERENCES */
 

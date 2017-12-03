@@ -2,10 +2,14 @@ package knugel.whoosh;
 
 import cofh.CoFHCore;
 import cofh.core.init.CoreProps;
+import cofh.core.network.PacketHandler;
 import cofh.core.util.ConfigHandler;
 import cofh.thermalfoundation.ThermalFoundation;
+import com.jcraft.jogg.Packet;
+import knugel.whoosh.gui.GuiHandler;
 import knugel.whoosh.init.WItems;
 import knugel.whoosh.init.WProps;
+import knugel.whoosh.network.PacketWhoosh;
 import knugel.whoosh.proxy.Proxy;
 import net.minecraft.creativetab.CreativeTabs;
 import net.minecraftforge.common.config.Configuration;
@@ -17,6 +21,7 @@ import net.minecraftforge.fml.common.event.FMLInitializationEvent;
 import net.minecraftforge.fml.common.event.FMLLoadCompleteEvent;
 import net.minecraftforge.fml.common.event.FMLPostInitializationEvent;
 import net.minecraftforge.fml.common.event.FMLPreInitializationEvent;
+import net.minecraftforge.fml.common.network.NetworkRegistry;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 
@@ -53,8 +58,10 @@ public class Whoosh {
         CONFIG_CLIENT.setConfiguration(new Configuration(new File(CoreProps.configDir, MOD_ID + "/client.cfg"), true));
 
         WProps.preInit();
-
         WItems.preInit();
+
+        PacketHandler.INSTANCE.registerPacket(PacketWhoosh.class);
+        NetworkRegistry.INSTANCE.registerGuiHandler(instance, new GuiHandler());
 
         proxy.preInit(event);
     }
