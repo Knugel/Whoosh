@@ -22,7 +22,6 @@ public class PacketWhoosh extends PacketCoFHBase {
 
         try {
             int type = getByte();
-            System.out.println("Handler: " + isServer);
             switch (PacketTypes.values()[type]) {
                 case SECURITY_UPDATE:
                     if (player.openContainer instanceof ISecurable) {

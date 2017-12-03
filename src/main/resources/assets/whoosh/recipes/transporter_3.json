@@ -1,0 +1,34 @@
+{
+  "type": "whoosh:upgrade_shaped",
+  "result": {
+    "item": "whoosh:transporter",
+    "data": 3
+  },
+  "pattern": [
+    " G ",
+    "IXI",
+    "RYR"
+  ],
+  "key": {
+    "I": {
+      "type": "forge:ore_dict",
+      "ore": "plateSignalum"
+    },
+    "G": {
+      "type": "forge:ore_dict",
+      "ore": "paneGlass"
+    },
+    "R": {
+      "type": "forge:ore_dict",
+      "ore": "enderpearl"
+    },
+    "X": {
+      "item": "whoosh:transporter",
+      "data": 2
+    },
+    "Y": {
+      "type": "forge:ore_dict",
+      "ore": "dustCryotheum"
+    }
+  }
+}

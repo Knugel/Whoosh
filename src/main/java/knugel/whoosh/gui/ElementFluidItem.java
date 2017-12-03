@@ -5,13 +5,11 @@ import cofh.core.gui.element.ElementBase;
 import cofh.core.init.CoreProps;
 import cofh.core.util.helpers.FluidHelper;
 import cofh.core.util.helpers.MathHelper;
-import cofh.core.util.helpers.RenderHelper;
 import cofh.core.util.helpers.StringHelper;
-import knugel.whoosh.util.IFluidItem;
+import knugel.whoosh.item.IFluidItem;
 import net.minecraft.client.renderer.texture.TextureAtlasSprite;
 import net.minecraft.item.ItemStack;
 import net.minecraft.util.ResourceLocation;
-import net.minecraftforge.fluids.IFluidTank;
 
 import java.util.List;
 

@@ -1,10 +1,16 @@
 package knugel.whoosh.util;
 
+import knugel.whoosh.Whoosh;
 import knugel.whoosh.init.WProps;
+import knugel.whoosh.item.ItemTransporter;
+import net.minecraft.client.Minecraft;
 import net.minecraft.entity.player.EntityPlayer;
 import net.minecraft.entity.player.EntityPlayerMP;
 import net.minecraft.server.MinecraftServer;
 import net.minecraft.util.math.BlockPos;
+import net.minecraft.util.math.RayTraceResult;
+import net.minecraft.util.math.Vec3d;
+import net.minecraft.util.math.Vec3i;
 import net.minecraft.world.World;
 import net.minecraft.world.WorldServer;
 
@@ -18,8 +24,8 @@ public class TeleportUtil {
 
         int cost = 0;
         if(world.provider.getDimension() != target.dimension)
-            cost += WProps.teleportDimensionCost;
-        cost += Math.sqrt(pos.distanceSq(target.position)) * WProps.teleportBlockCost;
+            cost += ItemTransporter.teleportDimensionCost;
+        cost += Math.sqrt(pos.distanceSq(target.position)) * ItemTransporter.teleportBlockCost;
         return cost;
     }
 
@@ -27,7 +33,7 @@ public class TeleportUtil {
 
         int cost = 0;
         if(world.provider.getDimension() != target.dimension)
-            cost += WProps.teleportDimensionFluidCost;
+            cost += ItemTransporter.teleportDimensionFluidCost;
         return cost;
     }
 
@@ -39,6 +45,27 @@ public class TeleportUtil {
         }
         else {
             player.setPositionAndUpdate(pos.getX()+0.5, pos.getY()+1, pos.getZ()+0.5);
+        }
+
+        return true;
+    }
+
+    public static boolean performBlink(World world, EntityPlayer player) {
+
+        Vec3d posVec = new Vec3d(player.posX, player.posY + player.getEyeHeight() - 0.08, player.posZ);
+        Vec3d lookVec = player.getLookVec();
+
+        Vec3d end = new Vec3d(lookVec.x, lookVec.y, lookVec.z);
+        end.add(posVec);
+
+        RayTraceResult res = world.rayTraceBlocks(posVec, end);
+        if(res != null) {
+            BlockPos pos = res.getBlockPos();
+            Whoosh.LOG.info(pos.toString());
+            //player.setPositionAndUpdate(pos.getX(), pos.getY(), pos.getZ());
+        }
+        else {
+            Whoosh.LOG.info("No block found.");
         }
 
         return true;

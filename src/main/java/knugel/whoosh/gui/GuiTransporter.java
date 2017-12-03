@@ -4,24 +4,14 @@ import cofh.api.core.ISecurable;
 import cofh.core.gui.GuiContainerCore;
 import cofh.core.gui.GuiTextList;
 import cofh.core.gui.element.ElementButton;
-import cofh.core.gui.element.ElementEnergyStored;
-import cofh.core.gui.element.ElementFluidTank;
 import cofh.core.gui.element.tab.TabInfo;
 import cofh.core.gui.element.tab.TabSecurity;
-import cofh.core.network.PacketHandler;
-import cofh.core.util.CoreUtils;
 import cofh.core.util.helpers.SecurityHelper;
-import cofh.redstoneflux.api.IEnergyStorage;
-import knugel.whoosh.Whoosh;
 import knugel.whoosh.item.ItemTransporter;
-import knugel.whoosh.network.PacketWhoosh;
 import knugel.whoosh.util.TeleportPosition;
 import net.minecraft.client.gui.GuiTextField;
 import net.minecraft.entity.player.EntityPlayer;
-import net.minecraft.entity.player.InventoryPlayer;
 import net.minecraft.util.ResourceLocation;
-import net.minecraft.world.DimensionType;
-import net.minecraftforge.common.DimensionManager;
 import org.lwjgl.input.Keyboard;
 import org.lwjgl.input.Mouse;
 
@@ -29,7 +19,6 @@ import java.io.IOException;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
-import java.util.Locale;
 import java.util.stream.Collectors;
 
 public class GuiTransporter extends GuiContainerCore {
@@ -180,12 +169,6 @@ public class GuiTransporter extends GuiContainerCore {
             this.mc.player.closeScreen();
             return;
         }
-        if (this.tbName.isFocused()) {
-
-            if (j == 28) { // enter
-                playClickSound(0.7F);
-            }
-        }
         updateButtons();
     }
 
@@ -203,15 +186,15 @@ public class GuiTransporter extends GuiContainerCore {
                 ContainerTransporter container = (ContainerTransporter)inventorySlots;
 
                 int index = getPoints().indexOf(taPoints.textLines.get(taPoints.selectedLine));
-                if(index == selected) {
+                if (index == selected) {
                     taInfo.textLines = Collections.emptyList();
                 }
 
-                if(container.getSelected() == index) {
+                if (container.getSelected() == index) {
                     container.setSelected(-1);
                 }
 
-                if(index != -1) {
+                if (index != -1) {
                     container.removePoint(index);
                 }
                 break;
@@ -231,6 +214,7 @@ public class GuiTransporter extends GuiContainerCore {
                 break;
         }
 
+        playClickSound(0.7F);
         updateButtons();
     }
 
@@ -322,6 +306,7 @@ public class GuiTransporter extends GuiContainerCore {
             }
             else
                 addPoint.setActive();
+
 
             removePoint.setDisabled();
             pSelect.setDisabled();

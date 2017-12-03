@@ -1,4 +1,4 @@
-package knugel.whoosh.util;
+package knugel.whoosh.item;
 
 import net.minecraft.item.ItemStack;
 import net.minecraftforge.fluids.FluidStack;

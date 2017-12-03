@@ -14,12 +14,12 @@ import cofh.core.util.core.IInitializer;
 import cofh.core.util.helpers.*;
 import cofh.redstoneflux.api.IEnergyContainerItem;
 import cofh.thermalfoundation.init.TFFluids;
+import cofh.thermalfoundation.init.TFItems;
+import cofh.thermalfoundation.item.ItemMaterial;
 import com.mojang.authlib.GameProfile;
 import gnu.trove.map.hash.TIntObjectHashMap;
 import knugel.whoosh.Whoosh;
 import knugel.whoosh.gui.GuiHandler;
-import knugel.whoosh.util.FluidItemWrapper;
-import knugel.whoosh.util.IFluidItem;
 import knugel.whoosh.util.TeleportPosition;
 import knugel.whoosh.util.TeleportUtil;
 import net.minecraft.client.util.ITooltipFlag;
@@ -28,7 +28,6 @@ import net.minecraft.enchantment.Enchantment;
 import net.minecraft.enchantment.EnchantmentHelper;
 import net.minecraft.entity.player.EntityPlayer;
 import net.minecraft.init.SoundEvents;
-import net.minecraft.inventory.ItemStackHelper;
 import net.minecraft.item.EnumRarity;
 import net.minecraft.item.ItemStack;
 import net.minecraft.nbt.NBTTagCompound;
@@ -46,6 +45,9 @@ import javax.annotation.Nullable;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.UUID;
+
+import static cofh.core.util.helpers.RecipeHelper.addShapedOreRecipe;
+import static cofh.core.util.helpers.RecipeHelper.addShapedRecipe;
 
 public class ItemTransporter extends ItemMulti implements IInitializer, IMultiModeItem, IEnergyContainerItem, IFluidItem, IEnchantableItem, INBTCopyIngredient {
 
@@ -110,7 +112,13 @@ public class ItemTransporter extends ItemMulti implements IInitializer, IMultiMo
         if (ItemHelper.getItemDamage(stack) == CREATIVE) {
             tooltip.add(StringHelper.localize("info.cofh.infiniteSource"));
         } else {
-            tooltip.add(StringHelper.localize("info.cofh.level") + ": 0 / " + StringHelper.formatNumber(getTankCapacity(stack)) + " mB");
+            int amount = 0;
+            FluidStack fluid = getFluid(stack);
+            if(fluid != null) {
+                amount = fluid.amount;
+            }
+
+            tooltip.add(StringHelper.localize("info.cofh.level") + ": " + amount + " / " + StringHelper.formatNumber(getTankCapacity(stack)) + " mB");
         }
     }
 
@@ -198,7 +206,6 @@ public class ItemTransporter extends ItemMulti implements IInitializer, IMultiMo
             if (canPlayerAccess(stack, player)) {
                 if(getMode(stack) == 1) {
                     if(player.isSneaking()) {
-
                         int index = getSelected(stack);
                         if(index != -1) {
                             TeleportPosition target = getPositions(stack).get(index);
@@ -216,22 +223,27 @@ public class ItemTransporter extends ItemMulti implements IInitializer, IMultiMo
                                 return new ActionResult<>(EnumActionResult.FAIL, stack);
                             }
 
-                            if(getFluid(stack) == null || fluidCost > getFluid(stack).amount) {
+                            if(fluidCost != 0 && (getFluid(stack) == null || fluidCost > getFluid(stack).amount)) {
                                 ChatHelper.sendIndexedChatMessageToPlayer(player, new TextComponentTranslation("chat.transporter.fluid.warning"));
                                 return new ActionResult<>(EnumActionResult.FAIL, stack);
                             }
 
                             if(TeleportUtil.performTeleport(world, player, target)) {
-
                                 extractEnergy(stack, rfCost, false);
-                                drain(stack, fluidCost, false);
+                                drain(stack, fluidCost, true);
                             }
-
                         }
-
                     }
                     else {
                         player.openGui(Whoosh.instance, GuiHandler.TRANSPORTER_ID, world, 0, 0, 0);
+                    }
+                } else {
+                    if(player.isSneaking()) {
+
+                        TeleportUtil.performBlink(world, player);
+                    }
+                    else {
+                        return new ActionResult<>(EnumActionResult.FAIL, stack);
                     }
                 }
             } else if (SecurityHelper.isSecure(stack)) {
@@ -605,6 +617,17 @@ public class ItemTransporter extends ItemMulti implements IInitializer, IMultiMo
     @Override
     public boolean register() {
 
+        addShapedRecipe(transporterBasic,
+                " G ",
+                "IXI",
+                "RYR",
+                'G', "paneGlass",
+                'I', "plateLead",
+                'R', "enderpearl",
+                'Y', "ingotCopper",
+                'X', ItemMaterial.powerCoilGold
+        );
+
         return true;
     }
 
@@ -615,6 +638,26 @@ public class ItemTransporter extends ItemMulti implements IInitializer, IMultiMo
         int capacity = CAPACITY_BASE;
         String comment = "Adjust this value to change the amount of Energy (in RF) stored by a Basic Transporter. This base value will scale with item level.";
         capacity = Whoosh.CONFIG.getConfiguration().getInt("BaseCapacity", category, capacity, capacity / 5, capacity * 5, comment);
+
+        comment = "Adjust this value to change the amount of Energy (in RF) required to teleport across dimensions.";
+        teleportDimensionCost = BASE_DIMENSION_COST;
+        teleportDimensionCost = Whoosh.CONFIG.getConfiguration().getInt("DimensionCost", category, teleportDimensionCost, 0, Integer.MAX_VALUE, comment);
+
+        comment = "Adjust this value to change the amount of Energy (in RF) required to teleport a distance of 1 block.";
+        teleportBlockCost = BASE_BLOCK_COST;
+        teleportBlockCost = Whoosh.CONFIG.getConfiguration().getInt("BlockCost", category, teleportBlockCost, 0, Integer.MAX_VALUE, comment);
+
+        comment = "Adjust this value to change the amount of Fluid (in mb) required to teleport across dimensions.";
+        teleportDimensionFluidCost = BASE_DIMENSION_FLUID_COST;
+        teleportDimensionFluidCost = Whoosh.CONFIG.getConfiguration().getInt("DimensionFluidCost", category, teleportDimensionFluidCost, 0, Integer.MAX_VALUE, comment);
+
+        comment = "Adjust this value to change the amount of Fluid (in mb) required to blink through blocks.";
+        teleportFluidBlinkCost = BASE_FLUID_BLINK_COST;
+        teleportFluidBlinkCost = Whoosh.CONFIG.getConfiguration().getInt("BlinkFluidCost", category, teleportFluidBlinkCost, 0, Integer.MAX_VALUE, comment);
+
+        comment = "Adjust this value to change the amount of Energy (in RF) required to blink a distance of 1 block.";
+        teleportBlockBlinkCost = BASE_BLOCK_BLINK_COST;
+        teleportBlockBlinkCost = Whoosh.CONFIG.getConfiguration().getInt("BlinkCost", category, teleportBlockBlinkCost, 0, Integer.MAX_VALUE, comment);
 
         for (int i = 0; i < CAPACITY.length; i++) {
             CAPACITY[i] *= capacity;
@@ -659,11 +702,22 @@ public class ItemTransporter extends ItemMulti implements IInitializer, IMultiMo
 
     private static TIntObjectHashMap<TypeEntry> typeMap = new TIntObjectHashMap<>();
 
-    public static final int CAPACITY_BASE = 50000;
+    public static final int CAPACITY_BASE = 100000;
+    public static final int BASE_DIMENSION_COST = 50000;
+    public static final int BASE_DIMENSION_FLUID_COST = 250;
+    public static final int BASE_BLOCK_COST = 50;
+    public static final int BASE_BLOCK_BLINK_COST = 150;
+    public static final int BASE_FLUID_BLINK_COST = 50;
     public static final int CREATIVE = 32000;
     public static final int[] CAPACITY = { 1, 4, 9, 16, 25 };
     public static final int[] TANK = { 500, 2000, 5000, 8000, 13000 };
     public static final boolean[] DIMENSION = { false, false, true, true, true };
+
+    public static int teleportDimensionCost;
+    public static int teleportDimensionFluidCost;
+    public static int teleportBlockCost;
+    public static int teleportBlockBlinkCost;
+    public static int teleportFluidBlinkCost;
 
     /* REFERENCES */
 
