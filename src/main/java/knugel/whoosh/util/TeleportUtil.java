@@ -8,12 +8,16 @@ import net.minecraft.entity.player.EntityPlayer;
 import net.minecraft.entity.player.EntityPlayerMP;
 import net.minecraft.init.Blocks;
 import net.minecraft.server.MinecraftServer;
+import net.minecraft.util.EnumFacing;
 import net.minecraft.util.math.BlockPos;
 import net.minecraft.util.math.RayTraceResult;
 import net.minecraft.util.math.Vec3d;
 import net.minecraft.util.math.Vec3i;
 import net.minecraft.world.World;
 import net.minecraft.world.WorldServer;
+
+import java.util.ArrayList;
+import java.util.List;
 
 public class TeleportUtil {
 
@@ -65,12 +69,19 @@ public class TeleportUtil {
         else {
 
             Vec3d n = end.subtract(res.hitVec).normalize();
-            for(int d = distance; d > 0; d--) {
+            List<BlockPos> empty = new ArrayList<>();
+            for(int d = distance - (int)Math.abs((eye.distanceTo(res.hitVec))); d > 0; d--) {
                 Vec3d v = res.hitVec.add(n.scale(d));
-                if(world.isAirBlock(new BlockPos(v)) && world.isAirBlock(new BlockPos(v.subtract(0, 1, 0)))) {
-                    BlockPos pos = new BlockPos(v);
-                    return (int)Math.sqrt(pos.distanceSq(new BlockPos(eye))) * ItemTransporter.teleportBlockBlinkCost;
+
+                BlockPos dest = canFit(world, new BlockPos(v));
+                if(dest != null) {
+                    empty.add(dest);
                 }
+            }
+
+            if(empty.size() != 0) {
+                BlockPos dest = empty.get(empty.size() / 2);
+                return (int)Math.sqrt(dest.distanceSq(new BlockPos(eye))) * ItemTransporter.teleportBlockBlinkCost;
             }
         }
 
@@ -106,17 +117,35 @@ public class TeleportUtil {
         else {
 
             Vec3d n = end.subtract(res.hitVec).normalize();
-            for(int d = distance; d > 0; d--) {
+            List<BlockPos> empty = new ArrayList<>();
+            for(int d = distance - (int)Math.abs((eye.distanceTo(res.hitVec))); d > 0; d--) {
                 Vec3d v = res.hitVec.add(n.scale(d));
-                if(world.isAirBlock(new BlockPos(v)) && world.isAirBlock(new BlockPos(v.subtract(0, 1, 0)))) {
-                    BlockPos pos = new BlockPos(v);
-                    player.setPositionAndUpdate(pos.getX() + 0.5, pos.getY() - 1, pos.getZ());
-                    return true;
+
+                BlockPos dest = canFit(world, new BlockPos(v));
+                if(dest != null) {
+                    empty.add(dest);
                 }
+            }
+
+            if(empty.size() != 0) {
+                BlockPos dest = empty.get(empty.size() / 2);
+                player.setPositionAndUpdate(dest.getX() + 0.5, dest.getY(), dest.getZ() + 0.5);
+                return true;
             }
         }
 
         return false;
+    }
+
+    private static BlockPos canFit(World world, BlockPos pos) {
+
+        if(world.isAirBlock(pos) && world.isAirBlock(pos.offset(EnumFacing.DOWN))) {
+            return pos;
+        }
+        else if(world.isAirBlock(pos) && world.isAirBlock(pos.offset(EnumFacing.UP))) {
+            return pos.offset(EnumFacing.UP);
+        }
+        return null;
     }
 
 

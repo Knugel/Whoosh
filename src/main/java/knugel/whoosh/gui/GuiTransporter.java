@@ -177,7 +177,7 @@ public class GuiTransporter extends GuiContainerCore {
         switch (buttonName) {
             case "SetPoint":
                 ((ContainerTransporter)inventorySlots)
-                        .appendPoint(new TeleportPosition(player.getPosition(), player.world.provider.getDimension(), tbName.getText()));
+                        .appendPoint(new TeleportPosition(player.getPosition(), player.world.provider.getDimension(), tbName.getText().trim()));
                 tbName.setText("");
 
                 break;
