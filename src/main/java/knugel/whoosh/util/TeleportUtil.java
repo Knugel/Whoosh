@@ -50,25 +50,10 @@ public class TeleportUtil {
         return true;
     }
 
+    // TODO: Make blink work.
     public static boolean performBlink(World world, EntityPlayer player) {
 
-        Vec3d posVec = new Vec3d(player.posX, player.posY + player.getEyeHeight() - 0.08, player.posZ);
-        Vec3d lookVec = player.getLookVec();
-
-        Vec3d end = new Vec3d(lookVec.x, lookVec.y, lookVec.z);
-        end.add(posVec);
-
-        RayTraceResult res = world.rayTraceBlocks(posVec, end);
-        if(res != null) {
-            BlockPos pos = res.getBlockPos();
-            Whoosh.LOG.info(pos.toString());
-            //player.setPositionAndUpdate(pos.getX(), pos.getY(), pos.getZ());
-        }
-        else {
-            Whoosh.LOG.info("No block found.");
-        }
-
-        return true;
+        return false;
     }
 
 

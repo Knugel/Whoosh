@@ -103,7 +103,7 @@ public class GuiTransporter extends GuiContainerCore {
         taPoints.drawBorder = false;
         taPoints.highlightSelectedLine = true;
 
-        taInfo = new GuiTextList(this.fontRenderer, taIX, taIY, 65, 4);
+        taInfo = new GuiTextList(this.fontRenderer, taIX, taIY, 65, 5);
         taInfo.drawBackground = false;
         taInfo.drawBorder = false;
 
@@ -122,7 +122,6 @@ public class GuiTransporter extends GuiContainerCore {
 
         energy = new ElementEnergyItem(this, 166, 42, ((ContainerTransporter)inventorySlots).getContainerStack());
         tank = new ElementFluidItem(this, 175, 43, ((ContainerTransporter)inventorySlots).getContainerStack());
-        tank.setSmall();
 
         addElement(addPoint);
         addElement(removePoint);
@@ -253,7 +252,16 @@ public class GuiTransporter extends GuiContainerCore {
         info.add("X: " + pos.position.getX());
         info.add("Y: " + pos.position.getY());
         info.add("Z: " + pos.position.getZ());
-        info.add(pos.getDimensionName());
+        String name = pos.getDimensionName();
+        if(name.length() > 10) {
+            String partOne = name.substring(0, 10);
+            String partTwo = name.substring(10);
+            info.add(partOne + "-");
+            info.add(partTwo);
+        }
+        else {
+            info.add(name);
+        }
         taInfo.textLines = info;
     }
 

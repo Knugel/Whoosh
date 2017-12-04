@@ -4,6 +4,8 @@ import net.minecraft.nbt.NBTTagCompound;
 import net.minecraft.util.math.BlockPos;
 import net.minecraftforge.common.DimensionManager;
 import net.minecraftforge.common.util.INBTSerializable;
+import net.minecraftforge.fml.relauncher.Side;
+import net.minecraftforge.fml.relauncher.SideOnly;
 
 public class TeleportPosition implements INBTSerializable<NBTTagCompound> {
 
@@ -22,9 +24,11 @@ public class TeleportPosition implements INBTSerializable<NBTTagCompound> {
         this.name = name;
     }
 
+    @SideOnly(Side.CLIENT)
     public String getDimensionName() {
 
-        return DimensionManager.getProviderType(dimension).getName();
+        // return DimensionManager.getWorld(dimension).getBiome(position).getBiomeName();
+        return Integer.toString(dimension);
     }
 
     /* INBTSerializable */

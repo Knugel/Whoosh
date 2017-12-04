@@ -1,6 +1,7 @@
 package knugel.whoosh.item;
 
 import cofh.api.core.ISecurable;
+import cofh.api.fluid.IFluidContainerItem;
 import cofh.api.item.IMultiModeItem;
 import cofh.api.item.INBTCopyIngredient;
 import cofh.core.init.CoreEnchantments;
@@ -10,6 +11,7 @@ import cofh.core.item.ItemMulti;
 import cofh.core.key.KeyBindingItemMultiMode;
 import cofh.core.util.CoreUtils;
 import cofh.core.util.RegistrySocial;
+import cofh.core.util.capabilities.FluidContainerItemWrapper;
 import cofh.core.util.core.IInitializer;
 import cofh.core.util.helpers.*;
 import cofh.redstoneflux.api.IEnergyContainerItem;
@@ -36,6 +38,10 @@ import net.minecraft.util.*;
 import net.minecraft.util.math.BlockPos;
 import net.minecraft.util.text.TextComponentTranslation;
 import net.minecraft.world.World;
+import net.minecraft.world.WorldProvider;
+import net.minecraft.world.WorldServer;
+import net.minecraft.world.storage.WorldInfo;
+import net.minecraftforge.common.DimensionManager;
 import net.minecraftforge.common.capabilities.ICapabilityProvider;
 import net.minecraftforge.common.util.Constants;
 import net.minecraftforge.fluids.Fluid;
@@ -49,7 +55,7 @@ import java.util.UUID;
 import static cofh.core.util.helpers.RecipeHelper.addShapedOreRecipe;
 import static cofh.core.util.helpers.RecipeHelper.addShapedRecipe;
 
-public class ItemTransporter extends ItemMulti implements IInitializer, IMultiModeItem, IEnergyContainerItem, IFluidItem, IEnchantableItem, INBTCopyIngredient {
+public class ItemTransporter extends ItemMulti implements IInitializer, IMultiModeItem, IEnergyContainerItem, IFluidContainerItem, IEnchantableItem, INBTCopyIngredient {
 
     public ItemTransporter() {
 
@@ -58,17 +64,6 @@ public class ItemTransporter extends ItemMulti implements IInitializer, IMultiMo
         setMaxStackSize(1);
         setUnlocalizedName("transporter");
         setCreativeTab(Whoosh.tabCommon);
-    }
-
-    public int getCapacity(ItemStack stack) {
-
-        if (!typeMap.containsKey(ItemHelper.getItemDamage(stack))) {
-            return 0;
-        }
-        int capacity = typeMap.get(ItemHelper.getItemDamage(stack)).capacity;
-        int enchant = EnchantmentHelper.getEnchantmentLevel(CoreEnchantments.holding, stack);
-
-        return capacity + capacity * enchant / 2;
     }
 
     public int getBaseCapacity(int metadata) {
@@ -118,7 +113,7 @@ public class ItemTransporter extends ItemMulti implements IInitializer, IMultiMo
                 amount = fluid.amount;
             }
 
-            tooltip.add(StringHelper.localize("info.cofh.level") + ": " + amount + " / " + StringHelper.formatNumber(getTankCapacity(stack)) + " mB");
+            tooltip.add(StringHelper.localize("info.cofh.level") + ": " + amount + " / " + StringHelper.formatNumber(getCapacity(stack)) + " mB");
         }
     }
 
@@ -386,7 +381,7 @@ public class ItemTransporter extends ItemMulti implements IInitializer, IMultiMo
             return 0;
         }
 
-        int capacity = getTankCapacity(container);
+        int capacity = getCapacity(container);
 
         if (ItemHelper.getItemDamage(container) == CREATIVE) {
             if (doFill) {
@@ -453,7 +448,7 @@ public class ItemTransporter extends ItemMulti implements IInitializer, IMultiMo
     }
 
     @Override
-    public int getTankCapacity(ItemStack stack) {
+    public int getCapacity(ItemStack stack) {
 
         if (!typeMap.containsKey(ItemHelper.getItemDamage(stack))) {
             return 0;
@@ -477,7 +472,7 @@ public class ItemTransporter extends ItemMulti implements IInitializer, IMultiMo
     @Override
     public ICapabilityProvider initCapabilities(ItemStack stack, NBTTagCompound nbt) {
 
-        return new FluidItemWrapper(stack, this);
+        return new FluidContainerItemWrapper(stack, this);
     }
 
     /* IEnergyContainerItem */
@@ -523,9 +518,15 @@ public class ItemTransporter extends ItemMulti implements IInitializer, IMultiMo
     }
 
     @Override
-    public int getMaxEnergyStored(ItemStack container) {
+    public int getMaxEnergyStored(ItemStack stack) {
 
-        return getCapacity(container);
+        if (!typeMap.containsKey(ItemHelper.getItemDamage(stack))) {
+            return 0;
+        }
+        int capacity = typeMap.get(ItemHelper.getItemDamage(stack)).capacity;
+        int enchant = EnchantmentHelper.getEnchantmentLevel(CoreEnchantments.holding, stack);
+
+        return capacity + capacity * enchant / 2;
     }
 
     /* IEnchantableItem */
