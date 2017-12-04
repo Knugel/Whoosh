@@ -28,7 +28,7 @@ public class TeleportPosition implements INBTSerializable<NBTTagCompound> {
     public String getDimensionName() {
 
         // return DimensionManager.getWorld(dimension).getBiome(position).getBiomeName();
-        return Integer.toString(dimension);
+        return "Dim: " + Integer.toString(dimension);
     }
 
     /* INBTSerializable */
