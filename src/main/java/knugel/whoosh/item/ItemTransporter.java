@@ -93,7 +93,10 @@ public class ItemTransporter extends ItemMulti implements IInitializer, IMultiMo
             tooltip.add(StringHelper.localizeFormat("info.whoosh.transporter.c.0"));
         }
 
-        if(getSelected(stack) != -1) {
+        if(getMode(stack) == 0) {
+            tooltip.add(StringHelper.localizeFormat("info.whoosh.transporter.c.2", typeMap.get(ItemHelper.getItemDamage(stack)).range));
+        }
+        else if(getSelected(stack) != -1) {
             TeleportPosition pos = getPositions(stack).get(getSelected(stack));
             tooltip.add(StringHelper.localizeFormat("info.whoosh.transporter.c.1", pos.name));
         }
@@ -205,7 +208,7 @@ public class ItemTransporter extends ItemMulti implements IInitializer, IMultiMo
                         if(index != -1) {
                             TeleportPosition target = getPositions(stack).get(index);
                             int rfCost = TeleportUtil.getRFCost(world, new BlockPos(player.posX, player.posY, player.posZ), target);
-                            int fluidCost = TeleportUtil.getFluidCost(world, new BlockPos(player.posX, player.posY, player.posZ), target);
+                            int fluidCost = TeleportUtil.getFluidCost(world, target);
                             TypeEntry type = typeMap.get(ItemHelper.getItemDamage(stack));
 
                             if(target.dimension != world.provider.getDimension() && !type.dimension) {
@@ -214,7 +217,7 @@ public class ItemTransporter extends ItemMulti implements IInitializer, IMultiMo
                             }
 
                             if(rfCost > getEnergyStored(stack)) {
-                                ChatHelper.sendIndexedChatMessageToPlayer(player, new TextComponentTranslation("chat.transporter.rf.warning"));
+                                ChatHelper.sendIndexedChatMessageToPlayer(player, new TextComponentTranslation("chat.transporter.rf.warning", rfCost - getEnergyStored(stack)));
                                 return new ActionResult<>(EnumActionResult.FAIL, stack);
                             }
 
@@ -235,7 +238,25 @@ public class ItemTransporter extends ItemMulti implements IInitializer, IMultiMo
                 } else {
                     if(player.isSneaking()) {
 
-                        TeleportUtil.performBlink(world, player);
+                        int range = typeMap.get(ItemHelper.getItemDamage(stack)).range;
+                        int rfCost = TeleportUtil.getRFCostBlink(world, player, range);
+                        int fluidCost = TeleportUtil.getFluidCostBlink(world, player, range);
+
+                        if(rfCost > getEnergyStored(stack)) {
+                            ChatHelper.sendIndexedChatMessageToPlayer(player, new TextComponentTranslation("chat.transporter.rf.warning", rfCost - getEnergyStored(stack)));
+                            return new ActionResult<>(EnumActionResult.FAIL, stack);
+                        }
+
+                        FluidStack fluid = getFluid(stack);
+                        if(fluidCost != 0 && (fluid == null || fluidCost > fluid.amount)) {
+                            ChatHelper.sendIndexedChatMessageToPlayer(player, new TextComponentTranslation("chat.transporter.fluid.warning", fluidCost - (fluid == null ? 0 : fluid.amount)));
+                            return new ActionResult<>(EnumActionResult.FAIL, stack);
+                        }
+
+                        if(TeleportUtil.performBlink(world, player, range)) {
+                            extractEnergy(stack, rfCost, false);
+                            drain(stack, fluidCost, true);
+                        }
                     }
                     else {
                         return new ActionResult<>(EnumActionResult.FAIL, stack);
@@ -602,13 +623,13 @@ public class ItemTransporter extends ItemMulti implements IInitializer, IMultiMo
 
         config();
 
-        transporterBasic = addEntryItem(0, "standard0", CAPACITY[0], TANK[0], DIMENSION[0], EnumRarity.COMMON);
-        transporterHardened = addEntryItem(1, "standard1", CAPACITY[1], TANK[1], DIMENSION[1], EnumRarity.COMMON);
-        transporterReinforced = addEntryItem(2, "standard2", CAPACITY[2], TANK[2], DIMENSION[2], EnumRarity.UNCOMMON);
-        transporterSignalum = addEntryItem(3, "standard3", CAPACITY[3], TANK[3], DIMENSION[3], EnumRarity.UNCOMMON);
-        transporterResonant = addEntryItem(4, "standard4", CAPACITY[4], TANK[4], DIMENSION[4], EnumRarity.RARE);
+        transporterBasic = addEntryItem(0, "standard0", CAPACITY[0], TANK[0], RANGE[0], DIMENSION[0], EnumRarity.COMMON);
+        transporterHardened = addEntryItem(1, "standard1", CAPACITY[1], TANK[1], RANGE[1], DIMENSION[1], EnumRarity.COMMON);
+        transporterReinforced = addEntryItem(2, "standard2", CAPACITY[2], TANK[2], RANGE[2], DIMENSION[2], EnumRarity.UNCOMMON);
+        transporterSignalum = addEntryItem(3, "standard3", CAPACITY[3], TANK[3], RANGE[3], DIMENSION[3], EnumRarity.UNCOMMON);
+        transporterResonant = addEntryItem(4, "standard4", CAPACITY[4], TANK[4], RANGE[4], DIMENSION[4], EnumRarity.RARE);
 
-        transporterCreative = addEntryItem(CREATIVE, "creative", CAPACITY[4], TANK[4], DIMENSION[4], EnumRarity.EPIC, false);
+        transporterCreative = addEntryItem(CREATIVE, "creative", CAPACITY[4], TANK[4], RANGE[4], DIMENSION[4], EnumRarity.EPIC, false);
 
         Whoosh.proxy.addIModelRegister(this);
 
@@ -671,47 +692,50 @@ public class ItemTransporter extends ItemMulti implements IInitializer, IMultiMo
         public final String name;
         public final int capacity;
         public final int tank;
+        public final int range;
         public final boolean dimension;
         public final boolean enchantable;
 
-        TypeEntry(String name, int capacity, int tank, boolean dimension, boolean enchantable) {
+        TypeEntry(String name, int capacity, int tank, int range, boolean dimension, boolean enchantable) {
 
             this.name = name;
             this.capacity = capacity;
             this.dimension = dimension;
+            this.range = range;
             this.enchantable = enchantable;
             this.tank = tank;
         }
     }
 
-    private void addEntry(int metadata, String name, int capacity, int tank, boolean dimension, boolean enchantable) {
+    private void addEntry(int metadata, String name, int capacity, int tank, int range, boolean dimension, boolean enchantable) {
 
-        typeMap.put(metadata, new TypeEntry(name, capacity, tank, dimension, enchantable));
+        typeMap.put(metadata, new TypeEntry(name, capacity, tank, range, dimension, enchantable));
     }
 
-    private ItemStack addEntryItem(int metadata, String name, int capacity, int tank, boolean dimension, EnumRarity rarity) {
+    private ItemStack addEntryItem(int metadata, String name, int capacity, int tank, int range, boolean dimension, EnumRarity rarity) {
 
-        addEntry(metadata, name, capacity, tank, dimension, true);
+        addEntry(metadata, name, capacity, tank, range, dimension, true);
         return addItem(metadata, name, rarity);
     }
 
-    private ItemStack addEntryItem(int metadata, String name, int capacity, int tank, boolean dimension, EnumRarity rarity, boolean enchantable) {
+    private ItemStack addEntryItem(int metadata, String name, int capacity, int tank, int range, boolean dimension, EnumRarity rarity, boolean enchantable) {
 
-        addEntry(metadata, name, capacity, tank, dimension, enchantable);
+        addEntry(metadata, name, capacity, tank, range, dimension, enchantable);
         return addItem(metadata, name, rarity);
     }
 
     private static TIntObjectHashMap<TypeEntry> typeMap = new TIntObjectHashMap<>();
 
-    public static final int CAPACITY_BASE = 100000;
+    public static final int CAPACITY_BASE = 50000;
     public static final int BASE_DIMENSION_COST = 50000;
     public static final int BASE_DIMENSION_FLUID_COST = 250;
     public static final int BASE_BLOCK_COST = 50;
     public static final int BASE_BLOCK_BLINK_COST = 150;
     public static final int BASE_FLUID_BLINK_COST = 50;
     public static final int CREATIVE = 32000;
-    public static final int[] CAPACITY = { 1, 4, 9, 16, 25 };
-    public static final int[] TANK = { 500, 2000, 5000, 8000, 13000 };
+    public static final int[] CAPACITY = { 1, 2, 5, 10, 15 };
+    public static final int[] TANK = { 1000, 2000, 5000, 10000, 15000 };
+    public static final int[] RANGE = { 4, 6, 8, 10, 12 };
     public static final boolean[] DIMENSION = { false, false, true, true, true };
 
     public static int teleportDimensionCost;

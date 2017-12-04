@@ -6,6 +6,7 @@ import knugel.whoosh.item.ItemTransporter;
 import net.minecraft.client.Minecraft;
 import net.minecraft.entity.player.EntityPlayer;
 import net.minecraft.entity.player.EntityPlayerMP;
+import net.minecraft.init.Blocks;
 import net.minecraft.server.MinecraftServer;
 import net.minecraft.util.math.BlockPos;
 import net.minecraft.util.math.RayTraceResult;
@@ -29,7 +30,7 @@ public class TeleportUtil {
         return cost;
     }
 
-    public static int getFluidCost(World world, BlockPos pos, TeleportPosition target) {
+    public static int getFluidCost(World world, TeleportPosition target) {
 
         int cost = 0;
         if(world.provider.getDimension() != target.dimension)
@@ -50,8 +51,70 @@ public class TeleportUtil {
         return true;
     }
 
-    // TODO: Make blink work.
-    public static boolean performBlink(World world, EntityPlayer player) {
+
+    public static int getRFCostBlink(World world, EntityPlayer player, int distance) {
+
+        Vec3d eye = new Vec3d(player.posX, player.posY + player.getEyeHeight(), + player.posZ);
+        Vec3d look = player.getLookVec();
+        Vec3d end = eye.add(new Vec3d(look.x * distance, look.y * distance, look.z * distance));
+
+        RayTraceResult res = world.rayTraceBlocks(eye, end, false, true, false);
+        if(res == null) {
+            return distance * ItemTransporter.teleportBlockBlinkCost;
+        }
+        else {
+
+            Vec3d n = end.subtract(res.hitVec).normalize();
+            for(int d = distance; d > 0; d--) {
+                Vec3d v = res.hitVec.add(n.scale(d));
+                if(world.isAirBlock(new BlockPos(v)) && world.isAirBlock(new BlockPos(v.subtract(0, 1, 0)))) {
+                    BlockPos pos = new BlockPos(v);
+                    return (int)Math.sqrt(pos.distanceSq(new BlockPos(eye))) * ItemTransporter.teleportBlockBlinkCost;
+                }
+            }
+        }
+
+        return 0;
+    }
+
+    public static int getFluidCostBlink(World world, EntityPlayer player, int distance) {
+
+        Vec3d eye = new Vec3d(player.posX, player.posY + player.getEyeHeight(), + player.posZ);
+        Vec3d look = player.getLookVec();
+        Vec3d end = eye.add(new Vec3d(look.x * distance, look.y * distance, look.z * distance));
+
+        RayTraceResult res = world.rayTraceBlocks(eye, end, false, true, false);
+        if(res == null) {
+           return 0;
+        }
+        else {
+            return ItemTransporter.teleportFluidBlinkCost;
+        }
+    }
+
+    public static boolean performBlink(World world, EntityPlayer player, int distance) {
+
+        Vec3d eye = new Vec3d(player.posX, player.posY + player.getEyeHeight(), + player.posZ);
+        Vec3d look = player.getLookVec();
+        Vec3d end = eye.add(new Vec3d(look.x * distance, look.y * distance, look.z * distance));
+
+        RayTraceResult res = world.rayTraceBlocks(eye, end, false, true, false);
+        if(res == null) {
+            player.setPositionAndUpdate(end.x, end.y, end.z);
+            return true;
+        }
+        else {
+
+            Vec3d n = end.subtract(res.hitVec).normalize();
+            for(int d = distance; d > 0; d--) {
+                Vec3d v = res.hitVec.add(n.scale(d));
+                if(world.isAirBlock(new BlockPos(v)) && world.isAirBlock(new BlockPos(v.subtract(0, 1, 0)))) {
+                    BlockPos pos = new BlockPos(v);
+                    player.setPositionAndUpdate(pos.getX() + 0.5, pos.getY() - 1, pos.getZ());
+                    return true;
+                }
+            }
+        }
 
         return false;
     }

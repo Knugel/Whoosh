@@ -187,6 +187,7 @@ public class GuiTransporter extends GuiContainerCore {
                 int index = getPoints().indexOf(taPoints.textLines.get(taPoints.selectedLine));
                 if (index == selected) {
                     taInfo.textLines = Collections.emptyList();
+                    selected = -1;
                 }
 
                 if (container.getSelected() == index) {
@@ -248,6 +249,7 @@ public class GuiTransporter extends GuiContainerCore {
     }
 
     private void setInfo(TeleportPosition pos) {
+
         List<String> info = new ArrayList<>();
         info.add("X: " + pos.position.getX());
         info.add("Y: " + pos.position.getY());
@@ -318,6 +320,14 @@ public class GuiTransporter extends GuiContainerCore {
 
             removePoint.setDisabled();
             pSelect.setDisabled();
+        }
+
+        if(selected == -1) {
+            removePoint.setDisabled();
+            pSelect.setDisabled();
+            pSelect.setVisible(true);
+            pDeselect.setDisabled();
+            pDeselect.setVisible(false);
         }
 
         taPoints.textLines = getPoints();
