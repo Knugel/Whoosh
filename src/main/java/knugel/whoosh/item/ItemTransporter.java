@@ -202,6 +202,11 @@ public class ItemTransporter extends ItemMulti implements IInitializer, IMultiMo
                 return new ActionResult<>(EnumActionResult.SUCCESS, stack);
             }
             if (canPlayerAccess(stack, player)) {
+
+                long lastUsed = getLastUsed(stack);
+                if(lastUsed != 0 && world.getTotalWorldTime() - lastUsed < cooldownUsage)
+                    return new ActionResult<>(EnumActionResult.FAIL, stack);
+
                 if(getMode(stack) == 1) {
                     if(player.isSneaking()) {
                         int index = getSelected(stack);
@@ -229,6 +234,8 @@ public class ItemTransporter extends ItemMulti implements IInitializer, IMultiMo
                             if(TeleportUtil.performTeleport(world, player, target)) {
                                 extractEnergy(stack, rfCost, false);
                                 drain(stack, fluidCost, true);
+                                world.playSound(null, player.posX, player.posY, player.posZ, SoundEvents.ENTITY_ENDERMEN_TELEPORT, SoundCategory.NEUTRAL, 0.5f, 1f);
+                                setLastUsed(stack, world.getTotalWorldTime());
                             }
                         }
                     }
@@ -256,6 +263,8 @@ public class ItemTransporter extends ItemMulti implements IInitializer, IMultiMo
                         if(TeleportUtil.performBlink(world, player, range)) {
                             extractEnergy(stack, rfCost, false);
                             drain(stack, fluidCost, true);
+                            world.playSound(null, player.posX, player.posY, player.posZ, SoundEvents.ENTITY_ENDERMEN_TELEPORT, SoundCategory.NEUTRAL, 0.5f, 1f);
+                            setLastUsed(stack, world.getTotalWorldTime());
                         }
                     }
                     else {
@@ -357,6 +366,26 @@ public class ItemTransporter extends ItemMulti implements IInitializer, IMultiMo
 
         NBTTagCompound tag = stack.getTagCompound();
         tag.setInteger("Selected", index);
+    }
+
+    public static void setLastUsed(ItemStack stack, long time) {
+
+        if(!stack.hasTagCompound())
+            return;
+
+        NBTTagCompound tag = stack.getTagCompound();
+        tag.setLong("LastUsed", time);
+    }
+
+    public static long getLastUsed(ItemStack stack) {
+
+        if(!stack.hasTagCompound())
+            return 0;
+
+        NBTTagCompound tag = stack.getTagCompound();
+        if(!tag.hasKey("LastUsed"))
+            return 0;
+        return tag.getLong("LastUsed");
     }
 
     /* IFluidContainerItem */
@@ -681,6 +710,10 @@ public class ItemTransporter extends ItemMulti implements IInitializer, IMultiMo
         teleportBlockBlinkCost = BASE_BLOCK_BLINK_COST;
         teleportBlockBlinkCost = Whoosh.CONFIG.getConfiguration().getInt("BlinkCost", category, teleportBlockBlinkCost, 0, Integer.MAX_VALUE, comment);
 
+        comment = "Adjust this value to change the cooldown (in ticks) between usages.";
+        cooldownUsage = BASE_COOLDOWN;
+        cooldownUsage = Whoosh.CONFIG.getConfiguration().getInt("Cooldown", category, cooldownUsage, 0, Integer.MAX_VALUE, comment);
+
         for (int i = 0; i < CAPACITY.length; i++) {
             CAPACITY[i] *= capacity;
         }
@@ -732,6 +765,7 @@ public class ItemTransporter extends ItemMulti implements IInitializer, IMultiMo
     public static final int BASE_BLOCK_COST = 50;
     public static final int BASE_BLOCK_BLINK_COST = 150;
     public static final int BASE_FLUID_BLINK_COST = 50;
+    public static final int BASE_COOLDOWN = 5;
     public static final int CREATIVE = 32000;
     public static final int[] CAPACITY = { 1, 2, 5, 10, 15 };
     public static final int[] TANK = { 1000, 2000, 5000, 10000, 15000 };
@@ -743,6 +777,7 @@ public class ItemTransporter extends ItemMulti implements IInitializer, IMultiMo
     public static int teleportBlockCost;
     public static int teleportBlockBlinkCost;
     public static int teleportFluidBlinkCost;
+    public static int cooldownUsage;
 
     /* REFERENCES */
 
