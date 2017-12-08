@@ -116,7 +116,7 @@ public class ItemTransporter extends ItemMulti implements IInitializer, IMultiMo
                 amount = fluid.amount;
             }
 
-            tooltip.add(StringHelper.localize("info.cofh.level") + ": " + amount + " / " + StringHelper.formatNumber(getCapacity(stack)) + " mB");
+            tooltip.add(StringHelper.localize("info.cofh.level") + ": " + StringHelper.formatNumber(amount) + " / " + StringHelper.formatNumber(getCapacity(stack)) + " mB");
         }
     }
 
