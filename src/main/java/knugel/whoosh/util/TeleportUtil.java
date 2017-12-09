@@ -105,7 +105,7 @@ public class TeleportUtil {
 
     public static boolean performBlink(World world, EntityPlayer player, int distance) {
 
-        Vec3d eye = new Vec3d(player.posX, player.posY + player.getEyeHeight(), + player.posZ);
+        Vec3d eye = new Vec3d(player.posX, player.posY + player.getEyeHeight() - 0.08, + player.posZ);
         Vec3d look = player.getLookVec();
         Vec3d end = eye.add(new Vec3d(look.x * distance, look.y * distance, look.z * distance));
 
@@ -122,7 +122,7 @@ public class TeleportUtil {
                 Vec3d v = res.hitVec.add(n.scale(d));
 
                 BlockPos dest = canFit(world, new BlockPos(v));
-                if(dest != null) {
+                if(dest != null && dest.getY() > 0) {
                     empty.add(dest);
                 }
             }
@@ -140,9 +140,12 @@ public class TeleportUtil {
     private static BlockPos canFit(World world, BlockPos pos) {
 
         if(world.isAirBlock(pos) && world.isAirBlock(pos.offset(EnumFacing.DOWN))) {
-            return pos;
+            return pos.offset(EnumFacing.DOWN);
         }
         else if(world.isAirBlock(pos) && world.isAirBlock(pos.offset(EnumFacing.UP))) {
+            return pos;
+        }
+        else if(world.isAirBlock(pos.offset(EnumFacing.UP)) && world.isAirBlock(pos.offset(EnumFacing.UP, 2))) {
             return pos.offset(EnumFacing.UP);
         }
         return null;
