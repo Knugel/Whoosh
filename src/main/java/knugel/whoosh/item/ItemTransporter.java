@@ -204,7 +204,7 @@ public class ItemTransporter extends ItemMulti implements IInitializer, IMultiMo
                     return new ActionResult<>(EnumActionResult.FAIL, stack);
 
                 if(getMode(stack) == 1) {
-                    if(player.isSneaking()) {
+                    if(player.isSneaking() == requireSneaking) {
                         int index = getSelected(stack);
                         if(index != -1) {
                             TeleportPosition target = getPositions(stack).get(index);
@@ -239,7 +239,7 @@ public class ItemTransporter extends ItemMulti implements IInitializer, IMultiMo
                         player.openGui(Whoosh.instance, GuiHandler.TRANSPORTER_ID, world, 0, 0, 0);
                     }
                 } else {
-                    if(player.isSneaking()) {
+                    if(player.isSneaking() == requireSneaking) {
 
                         int range = typeMap.get(ItemHelper.getItemDamage(stack)).range;
                         int rfCost = TeleportUtil.getRFCostBlink(world, player, range);
@@ -729,6 +729,10 @@ public class ItemTransporter extends ItemMulti implements IInitializer, IMultiMo
         cooldownUsage = BASE_COOLDOWN;
         cooldownUsage = Whoosh.CONFIG.getConfiguration().getInt("Cooldown", category, cooldownUsage, 0, Integer.MAX_VALUE, comment);
 
+        comment = "Require sneaking to teleport.";
+        requireSneaking = true;
+        requireSneaking = Whoosh.CONFIG.getConfiguration().getBoolean("Sneaking", category, requireSneaking, comment);
+
         for (int i = 0; i < CAPACITY.length; i++) {
             CAPACITY[i] *= capacity;
         }
@@ -793,6 +797,7 @@ public class ItemTransporter extends ItemMulti implements IInitializer, IMultiMo
     public static int teleportBlockBlinkCost;
     public static int teleportFluidBlinkCost;
     public static int cooldownUsage;
+    public static boolean requireSneaking;
 
     /* REFERENCES */
 
