@@ -65,7 +65,8 @@ public class EventHandlerClient {
             String name = positions.get(selected).name;
 
             int width = mc.fontRenderer.getStringWidth(name);
-            mc.fontRenderer.drawString(name, (w - width) / 2, h - 33, Color.WHITE.getRGB());
+            int height = player.capabilities.isCreativeMode ? 33 : 70;
+            mc.fontRenderer.drawString(name, (w - width) / 2, h - height, Color.WHITE.getRGB());
         }
     }
 }
