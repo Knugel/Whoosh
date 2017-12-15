@@ -16,7 +16,6 @@ import cofh.core.util.core.IInitializer;
 import cofh.core.util.helpers.*;
 import cofh.redstoneflux.api.IEnergyContainerItem;
 import cofh.thermalfoundation.init.TFFluids;
-import cofh.thermalfoundation.init.TFItems;
 import cofh.thermalfoundation.item.ItemMaterial;
 import com.mojang.authlib.GameProfile;
 import gnu.trove.map.hash.TIntObjectHashMap;
@@ -24,10 +23,12 @@ import knugel.whoosh.Whoosh;
 import knugel.whoosh.gui.GuiHandler;
 import knugel.whoosh.util.TeleportPosition;
 import knugel.whoosh.util.TeleportUtil;
+import net.minecraft.client.Minecraft;
 import net.minecraft.client.util.ITooltipFlag;
 import net.minecraft.creativetab.CreativeTabs;
 import net.minecraft.enchantment.Enchantment;
 import net.minecraft.enchantment.EnchantmentHelper;
+import net.minecraft.entity.Entity;
 import net.minecraft.entity.player.EntityPlayer;
 import net.minecraft.init.SoundEvents;
 import net.minecraft.item.EnumRarity;
@@ -38,10 +39,6 @@ import net.minecraft.util.*;
 import net.minecraft.util.math.BlockPos;
 import net.minecraft.util.text.TextComponentTranslation;
 import net.minecraft.world.World;
-import net.minecraft.world.WorldProvider;
-import net.minecraft.world.WorldServer;
-import net.minecraft.world.storage.WorldInfo;
-import net.minecraftforge.common.DimensionManager;
 import net.minecraftforge.common.capabilities.ICapabilityProvider;
 import net.minecraftforge.common.util.Constants;
 import net.minecraftforge.fluids.Fluid;
@@ -52,7 +49,6 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.UUID;
 
-import static cofh.core.util.helpers.RecipeHelper.addShapedOreRecipe;
 import static cofh.core.util.helpers.RecipeHelper.addShapedRecipe;
 
 public class ItemTransporter extends ItemMulti implements IInitializer, IMultiModeItem, IEnergyContainerItem, IFluidContainerItem, IEnchantableItem, INBTCopyIngredient {
@@ -375,6 +371,25 @@ public class ItemTransporter extends ItemMulti implements IInitializer, IMultiMo
 
         NBTTagCompound tag = stack.getTagCompound();
         tag.setLong("LastUsed", time);
+    }
+
+    public static void cycleSelected(ItemStack stack, int direction) {
+
+        if(!stack.hasTagCompound())
+            return;
+
+        int selected = getSelected(stack);
+        List<TeleportPosition> positions = getPositions(stack);
+        if(selected == -1 || positions.size() <= 1)
+            return;
+
+        if(direction > 0)
+            selected++;
+        else
+            selected--;
+
+        selected = MathHelper.clamp(selected, 0, positions.size() - 1);
+        setSelected(stack, selected);
     }
 
     public static long getLastUsed(ItemStack stack) {

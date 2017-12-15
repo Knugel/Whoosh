@@ -14,7 +14,7 @@ import net.minecraft.util.math.BlockPos;
 public class PacketWhoosh extends PacketCoFHBase {
 
     public enum PacketTypes {
-        SECURITY_UPDATE, ADD_POS, REMOVE_POS, SET_SELECTED
+        SECURITY_UPDATE, ADD_POS, REMOVE_POS, SET_SELECTED, CYCLE_SELECTED
     }
 
     @Override
@@ -55,6 +55,12 @@ public class PacketWhoosh extends PacketCoFHBase {
                         }
                     }
                     return;
+                case CYCLE_SELECTED:
+                    ItemStack stack = player.getHeldItemMainhand();
+                    if(stack.getItem() instanceof ItemTransporter) {
+                        ItemTransporter.cycleSelected(stack, getInt());
+                    }
+                    return;
                 default:
                     Whoosh.LOG.error("Unknown Packet! Internal: WPH, ID: " + type);
             }
@@ -86,6 +92,11 @@ public class PacketWhoosh extends PacketCoFHBase {
     public static void sendSetSelectedPacketToServer(int index) {
 
         PacketHandler.sendToServer(getPacket(PacketTypes.SET_SELECTED).addInt(index));
+    }
+
+    public static void sendCycleSelectedPacketToServer(int direction) {
+
+        PacketHandler.sendToServer(getPacket(PacketTypes.CYCLE_SELECTED).addInt(direction));
     }
 
     public static PacketCoFHBase getPacket(PacketTypes theType) {
