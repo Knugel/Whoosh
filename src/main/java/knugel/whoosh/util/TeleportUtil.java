@@ -3,10 +3,12 @@ package knugel.whoosh.util;
 import knugel.whoosh.Whoosh;
 import knugel.whoosh.init.WProps;
 import knugel.whoosh.item.ItemTransporter;
+import knugel.whoosh.network.PacketWhoosh;
 import net.minecraft.client.Minecraft;
 import net.minecraft.entity.player.EntityPlayer;
 import net.minecraft.entity.player.EntityPlayerMP;
 import net.minecraft.init.Blocks;
+import net.minecraft.network.play.server.SPacketEntityVelocity;
 import net.minecraft.server.MinecraftServer;
 import net.minecraft.util.EnumFacing;
 import net.minecraft.util.math.BlockPos;
@@ -111,30 +113,52 @@ public class TeleportUtil {
 
         RayTraceResult res = world.rayTraceBlocks(eye, end, false, true, false);
         if(res == null) {
-            player.setPositionAndUpdate(end.x, end.y, end.z);
+            movePlayer(end, player, true);
             return true;
         }
         else {
 
-            Vec3d n = end.subtract(res.hitVec).normalize();
-            List<BlockPos> empty = new ArrayList<>();
-            for(int d = distance - (int)Math.abs((eye.distanceTo(res.hitVec))); d > 0; d--) {
-                Vec3d v = res.hitVec.add(n.scale(d));
-
-                BlockPos dest = canFit(world, new BlockPos(v));
-                if(dest != null && dest.getY() > 0) {
-                    empty.add(dest);
-                }
+            List<BlockPos> empty = getBlinkPositions(res, eye, end, distance, world);
+            if(empty.size() == 0) {
+                return false;
             }
 
-            if(empty.size() != 0) {
-                BlockPos dest = empty.get(empty.size() / 2);
-                player.setPositionAndUpdate(dest.getX() + 0.5, dest.getY(), dest.getZ() + 0.5);
+            BlockPos target = empty.get(empty.size() / 2);
+
+            if(target != null) {
+                movePlayer(new Vec3d(target.getX() + 0.5, target.getY(), target.getZ() + 0.5), player, false);
                 return true;
             }
         }
 
         return false;
+    }
+
+    private static List<BlockPos> getBlinkPositions(RayTraceResult ray, Vec3d eye, Vec3d end, int distance, World world) {
+
+        Vec3d n = end.subtract(ray.hitVec).normalize();
+        List<BlockPos> empty = new ArrayList<>();
+        for(int d = distance - (int)Math.abs((eye.distanceTo(ray.hitVec))); d > 0; d--) {
+            Vec3d v = ray.hitVec.add(n.scale(d));
+
+            BlockPos dest = canFit(world, new BlockPos(v));
+            if(dest != null && dest.getY() > 0) {
+                empty.add(dest);
+            }
+        }
+
+        return empty;
+    }
+
+    private static void movePlayer(Vec3d destination, EntityPlayer player, boolean keepMomentum) {
+
+        player.setPositionAndUpdate(destination.x, destination.y, destination.z);
+
+        if(keepMomentum) {
+            Vec3d velocity = player.getLookVec();
+            SPacketEntityVelocity p = new SPacketEntityVelocity(player.getEntityId(), velocity.x, velocity.y, velocity.z);
+            ((EntityPlayerMP) player).connection.sendPacket(p);
+        }
     }
 
     private static BlockPos canFit(World world, BlockPos pos) {
