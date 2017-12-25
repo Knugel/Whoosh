@@ -99,7 +99,7 @@ public class PacketWhoosh extends PacketBase {
         PacketHandler.sendToServer(getPacket(PacketTypes.CYCLE_SELECTED).addInt(direction));
     }
 
-    public static PacketCoFHBase getPacket(PacketTypes theType) {
+    public static PacketBase getPacket(PacketTypes theType) {
 
         return new PacketWhoosh().addByte(theType.ordinal());
     }
