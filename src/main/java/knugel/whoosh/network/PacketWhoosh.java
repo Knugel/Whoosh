@@ -1,7 +1,7 @@
 package knugel.whoosh.network;
 
 import cofh.api.core.ISecurable;
-import cofh.core.network.PacketCoFHBase;
+import cofh.core.network.PacketBase;
 import cofh.core.network.PacketHandler;
 import knugel.whoosh.Whoosh;
 import knugel.whoosh.gui.ContainerTransporter;
@@ -11,7 +11,7 @@ import net.minecraft.entity.player.EntityPlayer;
 import net.minecraft.item.ItemStack;
 import net.minecraft.util.math.BlockPos;
 
-public class PacketWhoosh extends PacketCoFHBase {
+public class PacketWhoosh extends PacketBase {
 
     public enum PacketTypes {
         SECURITY_UPDATE, ADD_POS, REMOVE_POS, SET_SELECTED, CYCLE_SELECTED
@@ -99,7 +99,7 @@ public class PacketWhoosh extends PacketCoFHBase {
         PacketHandler.sendToServer(getPacket(PacketTypes.CYCLE_SELECTED).addInt(direction));
     }
 
-    public static PacketCoFHBase getPacket(PacketTypes theType) {
+    public static PacketBase getPacket(PacketTypes theType) {
 
         return new PacketWhoosh().addByte(theType.ordinal());
     }
