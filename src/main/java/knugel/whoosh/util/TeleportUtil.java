@@ -1,20 +1,14 @@
 package knugel.whoosh.util;
 
-import knugel.whoosh.Whoosh;
-import knugel.whoosh.init.WProps;
 import knugel.whoosh.item.ItemTransporter;
-import knugel.whoosh.network.PacketWhoosh;
-import net.minecraft.client.Minecraft;
 import net.minecraft.entity.player.EntityPlayer;
 import net.minecraft.entity.player.EntityPlayerMP;
-import net.minecraft.init.Blocks;
 import net.minecraft.network.play.server.SPacketEntityVelocity;
 import net.minecraft.server.MinecraftServer;
 import net.minecraft.util.EnumFacing;
 import net.minecraft.util.math.BlockPos;
 import net.minecraft.util.math.RayTraceResult;
 import net.minecraft.util.math.Vec3d;
-import net.minecraft.util.math.Vec3i;
 import net.minecraft.world.World;
 import net.minecraft.world.WorldServer;
 
@@ -156,6 +150,7 @@ public class TeleportUtil {
 
         if(keepMomentum) {
             Vec3d velocity = player.getLookVec();
+            velocity = velocity.scale(0.5f);
             SPacketEntityVelocity p = new SPacketEntityVelocity(player.getEntityId(), velocity.x, velocity.y, velocity.z);
             ((EntityPlayerMP) player).connection.sendPacket(p);
         }
