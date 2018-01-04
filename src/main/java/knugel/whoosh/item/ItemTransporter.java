@@ -383,7 +383,7 @@ public class ItemTransporter extends ItemMulti implements IInitializer, IMultiMo
         if(selected == -1 || positions.size() <= 1)
             return;
 
-        if(direction > 0)
+        if(direction < 0)
             selected++;
         else
             selected--;

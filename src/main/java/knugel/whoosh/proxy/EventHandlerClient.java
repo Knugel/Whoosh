@@ -60,13 +60,18 @@ public class EventHandlerClient {
         int selected = ItemTransporter.getSelected(stack);
         List<TeleportPosition> positions = ItemTransporter.getPositions(stack);
         if(selected != -1 && positions.size() > 0) {
+            if(selected >= positions.size()) {
+                ItemTransporter.setSelected(stack, positions.size() - 1);
+                return;
+            }
+
             int h = event.getResolution().getScaledHeight();
             int w = event.getResolution().getScaledWidth();
             String name = positions.get(selected).name;
 
             int width = mc.fontRenderer.getStringWidth(name);
             int height = player.capabilities.isCreativeMode ? 33 : 70;
-            mc.fontRenderer.drawString(name, (w - width) / 2, h - height, Color.WHITE.getRGB());
+            mc.fontRenderer.drawStringWithShadow(name, (w - width) / 2, h - height, 0xFFFFFF);
         }
     }
 }

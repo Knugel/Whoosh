@@ -150,7 +150,7 @@ public class TeleportUtil {
 
         if(keepMomentum) {
             Vec3d velocity = player.getLookVec();
-            velocity = velocity.scale(0.5f);
+            velocity = velocity.scale(0.25);
             SPacketEntityVelocity p = new SPacketEntityVelocity(player.getEntityId(), velocity.x, velocity.y, velocity.z);
             ((EntityPlayerMP) player).connection.sendPacket(p);
         }
