@@ -1,5 +1,6 @@
 package knugel.whoosh.util;
 
+import cofh.core.util.RayTracer;
 import knugel.whoosh.item.ItemTransporter;
 import net.minecraft.entity.player.EntityPlayer;
 import net.minecraft.entity.player.EntityPlayerMP;
@@ -92,11 +93,26 @@ public class TeleportUtil {
 
         RayTraceResult res = world.rayTraceBlocks(eye, end, false, true, false);
         if(res == null) {
-           return 0;
+            return 0;
         }
         else {
-            return ItemTransporter.teleportFluidBlinkCost;
+
+            List<BlockPos> empty = getBlinkPositions(res, eye, end, distance, world);
+            if(empty.size() == 0) {
+                return 0;
+            }
+
+            BlockPos target = empty.get(empty.size() / 2);
+
+            if(target != null) {
+                if(isBlockBetween(world, eye, new Vec3d(target.getX() + 0.5, target.getY(), target.getZ() + 0.5))) {
+                    return ItemTransporter.teleportFluidBlinkCost;
+                }
+                return 0;
+            }
         }
+
+        return 0;
     }
 
     public static boolean performBlink(World world, EntityPlayer player, int distance) {
@@ -170,6 +186,19 @@ public class TeleportUtil {
         return null;
     }
 
+    private static boolean isBlockBetween(World world, Vec3d start, Vec3d target) {
+
+        RayTraceResult res = world.rayTraceBlocks(start, target);
+        if(res == null) {
+            return false;
+        }
+
+        if(res.getBlockPos().equals(new BlockPos(target))) {
+            return false;
+        }
+
+        return true;
+    }
 
     // Copied from RFTools
     // https://github.com/McJty/RFTools/blob/73e3b57e83929c88ff0f3cdc841739ee76328f8f/src/main/java/mcjty/rftools/blocks/teleporter/TeleportationTools.java#L360
