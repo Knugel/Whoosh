@@ -1,0 +1,24 @@
+itemGroup.whoosh.creativeTab=Whoosh
+
+gui.whoosh.transporter=Taşıyıcı
+tab.whoosh.transporter.0=Yerleri ayarlamak için teleport yapmanıza izin verir.
+tab.whoosh.transporter.1=Boyutlar arası ışınlanmada sıvı tüketir.
+tab.whoosh.transporter.2=Uzay zaman sürekliliğinde kaybolan uzuvlardan sorumlu değildir.
+
+chat.transporter.rf.warning=Taşıyıcıda yeterli RF yok. %s RF eksik.
+chat.transporter.fluid.warning=Taşıyıcıda yeterli sıvı yok. %s mb sıvı eksik.
+chat.transporter.dimension.warning=Boyutlar arası ışınlanılamıyor.
+
+info.whoosh.transporter.a.0=Kırpmak
+info.whoosh.transporter.a.1=Işınlan
+info.whoosh.transporter.b.0=§e(%s) tuşuna basarak ışınlanma modunu değiştir.§r
+info.whoosh.transporter.c.0=§8Boyutlar arası ışınlanılamıyor.§r
+info.whoosh.transporter.c.1=Hedef: %s
+info.whoosh.transporter.c.2=Menzil: %s
+
+item.whoosh.transporter.standard0.name=Işınlayıcı (Basit)
+item.whoosh.transporter.standard1.name=Işınlayıcı (Güçlendirilmiş)
+item.whoosh.transporter.standard2.name=Işınlayıcı (Takviyeli)
+item.whoosh.transporter.standard3.name=Işınlayıcı (Signalum)
+item.whoosh.transporter.standard4.name=Işınlayıcı (Rezonant)
+item.whoosh.transporter.creative.name=Işınlayıcı (Creative)
