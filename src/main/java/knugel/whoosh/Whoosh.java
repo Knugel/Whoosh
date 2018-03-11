@@ -33,7 +33,7 @@ public class Whoosh {
     public static final String MOD_ID = "whoosh";
     public static final String MOD_NAME = "Whoosh";
 
-    public static final String VERSION = "0.1.7";
+    public static final String VERSION = "0.1.8";
     public static final String VERSION_MAX = "1.0.0";
     public static final String VERSION_GROUP = "required-after:" + MOD_ID + "@[" + VERSION + "," + VERSION_MAX + ");";
 

@@ -170,6 +170,8 @@ public class TeleportUtil {
             SPacketEntityVelocity p = new SPacketEntityVelocity(player.getEntityId(), velocity.x, velocity.y, velocity.z);
             ((EntityPlayerMP) player).connection.sendPacket(p);
         }
+
+        ((EntityPlayerMP) player).fallDistance = 0;
     }
 
     private static BlockPos canFit(World world, BlockPos pos) {
