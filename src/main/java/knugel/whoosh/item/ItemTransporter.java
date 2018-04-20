@@ -15,12 +15,14 @@ import cofh.core.util.capabilities.FluidContainerItemWrapper;
 import cofh.core.util.core.IInitializer;
 import cofh.core.util.helpers.*;
 import cofh.redstoneflux.api.IEnergyContainerItem;
+import cofh.redstoneflux.util.EnergyContainerItemWrapper;
 import cofh.thermalfoundation.init.TFFluids;
 import cofh.thermalfoundation.item.ItemMaterial;
 import com.mojang.authlib.GameProfile;
 import gnu.trove.map.hash.TIntObjectHashMap;
 import knugel.whoosh.Whoosh;
 import knugel.whoosh.gui.GuiHandler;
+import knugel.whoosh.util.CapabilityWrapper;
 import knugel.whoosh.util.TeleportPosition;
 import knugel.whoosh.util.TeleportUtil;
 import net.minecraft.client.Minecraft;
@@ -442,7 +444,7 @@ public class ItemTransporter extends ItemMulti implements IInitializer, IMultiMo
         if (resource == null) {
             return 0;
         }
-        if(resource.getFluid() != TFFluids.fluidEnder) {
+        if(!resource.getFluid().getName().equals("ender")) {
             return 0;
         }
 
@@ -537,7 +539,7 @@ public class ItemTransporter extends ItemMulti implements IInitializer, IMultiMo
     @Override
     public ICapabilityProvider initCapabilities(ItemStack stack, NBTTagCompound nbt) {
 
-        return new FluidContainerItemWrapper(stack, this);
+        return new CapabilityWrapper(new EnergyContainerItemWrapper(stack, this), new FluidContainerItemWrapper(stack, this));
     }
 
     /* IEnergyContainerItem */
