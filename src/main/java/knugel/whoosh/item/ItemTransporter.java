@@ -45,6 +45,7 @@ import net.minecraftforge.common.capabilities.ICapabilityProvider;
 import net.minecraftforge.common.util.Constants;
 import net.minecraftforge.fluids.Fluid;
 import net.minecraftforge.fluids.FluidStack;
+import net.minecraftforge.fml.common.registry.ForgeRegistries;
 
 import javax.annotation.Nullable;
 import java.util.ArrayList;
@@ -665,9 +666,11 @@ public class ItemTransporter extends ItemMulti implements IInitializer, IMultiMo
 
     /* IInitializer */
     @Override
-    public boolean initialize() {
+    public boolean preInit() {
 
         config();
+
+        ForgeRegistries.ITEMS.register(setRegistryName("transporter"));
 
         transporterBasic = addEntryItem(0, "standard0", CAPACITY[0], TANK[0], RANGE[0], DIMENSION[0], EnumRarity.COMMON);
         transporterHardened = addEntryItem(1, "standard1", CAPACITY[1], TANK[1], RANGE[1], DIMENSION[1], EnumRarity.COMMON);
@@ -683,7 +686,7 @@ public class ItemTransporter extends ItemMulti implements IInitializer, IMultiMo
     }
 
     @Override
-    public boolean register() {
+    public boolean initialize() {
 
         addShapedRecipe(transporterBasic,
                 " G ",

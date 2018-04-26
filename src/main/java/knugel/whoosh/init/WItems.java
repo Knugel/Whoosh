@@ -24,7 +24,7 @@ public class WItems {
         initList.add(itemTransporter);
 
         for (IInitializer init : initList) {
-            init.initialize();
+            init.preInit();
         }
         MinecraftForge.EVENT_BUS.register(INSTANCE);
     }
@@ -34,7 +34,7 @@ public class WItems {
     public void registerRecipes(RegistryEvent.Register<IRecipe> event) {
 
         for (IInitializer init : initList) {
-            init.register();
+            init.initialize();
         }
     }
 
